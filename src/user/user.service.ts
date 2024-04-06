@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -16,11 +17,16 @@ export class UserService {
   ) {}
 
   async create(createUserDto: CreateUserDto): Promise<User | string> {
-    const createdUser = await this.userModel.create(createUserDto).catch(() => {
-      throw new ConflictException('User exist');
-    });
-
-    return createdUser;
+    try {
+      const createdUser = await this.userModel.create(createUserDto);
+      return createdUser;
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new ConflictException('User already exists');
+      } else {
+        throw new BadRequestException('Bad Request');
+      }
+    }
   }
 
   async findAll(): Promise<User[]> {
@@ -34,16 +40,30 @@ export class UserService {
   }
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
-    const updateUser = await this.userModel
-      .findByIdAndUpdate(id, updateUserDto, {
-        new: true,
-      })
-      .catch((err) => {
-        if (err.code === 11000)
-          throw new ConflictException('User already exist');
-        else throw new NotFoundException('Bad Request');
-      });
+    try {
+      const updateUser = await this.userModel.findByIdAndUpdate(
+        id,
+        updateUserDto,
+        {
+          new: true,
+        },
+      );
 
-    return updateUser;
+      if (!updateUser) throw new NotFoundException('User not found');
+
+      return updateUser;
+    } catch (err) {
+      if (err.code === 11000) {
+        throw new ConflictException('User already exists');
+      } else {
+        throw new BadRequestException('Bad Request');
+      }
+    }
+  }
+
+  async delete(id: string): Promise<User> {
+    const res = await this.userModel.findByIdAndDelete(id).exec();
+    if (!res) throw new NotFoundException('User not found');
+    return res;
   }
 }
