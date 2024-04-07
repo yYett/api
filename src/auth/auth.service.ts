@@ -16,7 +16,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = await this.jwtService.signAsync({ name: 'x' });
+    const token = await this.jwtService.signAsync({ sub: user._id });
 
     return { user, token };
   }

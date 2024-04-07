@@ -13,6 +13,8 @@ export class CreateUserDto {
   @ApiProperty()
   readonly password: string;
 
+  // confirmationPassword
+
   @ApiProperty()
   readonly role: UserRoles;
 }
