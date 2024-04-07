@@ -12,11 +12,14 @@ export class AuthService {
   async signIn(email: string, pass: string): Promise<any> {
     const user = await this.usersService.find(email);
 
-    if (user.password !== pass) {
+    if (user?.password !== pass) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = await this.jwtService.signAsync({ sub: user._id });
+    const token = await this.jwtService.signAsync({
+      sub: user._id,
+      email,
+    });
 
     return { user, token };
   }

@@ -5,7 +5,7 @@ export class CreateUserDto {
   readonly _id: string;
 
   @ApiProperty()
-  readonly name: string;
+  readonly username: string;
 
   @ApiProperty()
   readonly email: string;

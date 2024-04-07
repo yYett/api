@@ -3,7 +3,7 @@ import { UserRoles } from 'src/types';
 
 export class UpdateUserDto {
   @ApiProperty({ required: true })
-  readonly name: string;
+  readonly username: string;
 
   @ApiProperty({ required: true })
   readonly email: string;
