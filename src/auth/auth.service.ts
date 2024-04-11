@@ -7,20 +7,37 @@ export class AuthService {
   constructor(
     private usersService: UserService,
     private jwtService: JwtService,
+    private c: UserService,
   ) {}
 
-  async signIn(email: string, pass: string): Promise<any> {
+  async login(email: string, pass: string): Promise<any> {
     const user = await this.usersService.find(email);
 
     if (user?.password !== pass) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const token = await this.jwtService.signAsync({
-      sub: user._id,
-      email,
+    const tokens = await this.getTokens(user._id, user.email);
+
+    await this.usersService.update(user._id, {
+      refreshToken: tokens.refreshToken,
     });
 
-    return { user, token };
+    return { user, ...tokens };
+  }
+
+  async getTokens(id: string, email: string) {
+    const payload = { sub: id, email };
+
+    const [token, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        expiresIn: '15m',
+      }),
+      this.jwtService.signAsync(payload, {
+        expiresIn: '7d',
+      }),
+    ]);
+
+    return { token, refreshToken };
   }
 }

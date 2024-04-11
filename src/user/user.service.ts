@@ -39,21 +39,24 @@ export class UserService {
     return user;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User | null> {
+  async update(
+    id: string,
+    updateUserDto: Partial<UpdateUserDto>,
+  ): Promise<User | null> {
     try {
       const updateUser = await this.userModel.findByIdAndUpdate(
         id,
         updateUserDto,
-        {
-          new: true,
-        },
+        { new: true },
       );
 
-      if (!updateUser) throw new NotFoundException('User not found');
+      if (!updateUser) {
+        throw new NotFoundException('User not found');
+      }
 
       return updateUser;
     } catch (err) {
-      if (err.code === 11000) {
+      if (err.name === 'MongoError' && err.code === 11000) {
         throw new ConflictException('User already exists');
       } else {
         throw new BadRequestException('Bad Request');

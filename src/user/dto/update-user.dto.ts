@@ -13,4 +13,7 @@ export class UpdateUserDto {
 
   @ApiProperty({ required: true })
   readonly role: UserRoles;
+
+  @ApiProperty()
+  readonly refreshToken: string | null;
 }

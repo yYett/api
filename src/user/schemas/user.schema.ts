@@ -20,6 +20,9 @@ export class User {
 
   @Prop({ default: 'admin' })
   role: UserRoles;
+
+  @Prop()
+  refreshToken: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
@@ -28,5 +31,6 @@ export const UserSchema = SchemaFactory.createForClass(User);
 UserSchema.methods.toJSON = function () {
   const userObject = this.toObject();
   delete userObject.password;
+  delete userObject.refreshToken;
   return userObject;
 };
