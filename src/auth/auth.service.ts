@@ -1,29 +1,57 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
+import { UserService } from 'src/users/user.service';
+import { LoginDto, RegisterDto } from './dto';
+import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
-import { UserService } from 'src/user/user.service';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UserService,
+    private userService: UserService,
     private jwtService: JwtService,
-    private c: UserService,
   ) {}
 
-  async login(email: string, pass: string): Promise<any> {
-    const user = await this.usersService.find(email);
+  async register(registerDto: RegisterDto) {
+    const user = await this.userService.find(registerDto.email);
+    if (user) throw new BadRequestException('User already exists');
 
-    if (user?.password !== pass) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    const hash = await this.hashData(registerDto.password);
 
-    const tokens = await this.getTokens(user._id, user.email);
-
-    await this.usersService.update(user._id, {
-      refreshToken: tokens.refreshToken,
+    const newUser = await this.userService.create({
+      ...registerDto,
+      password: hash,
     });
 
-    return { user, ...tokens };
+    return newUser;
+  }
+
+  async login(loginDto: LoginDto) {
+    const user = await this.userService.find(loginDto.email);
+    if (!user) throw new BadRequestException('User does not exist');
+
+    const matchPass = await argon2.verify(user.password, loginDto.password);
+    if (!matchPass) throw new BadRequestException('Password is incorrect');
+
+    // tokens
+    const { token, refreshToken } = await this.getTokens(user.id, user.email);
+    await this.updateRefreshToken(user.id, refreshToken);
+
+    return { token, refreshToken };
+  }
+
+  async logout(userId: string) {
+    this.userService.update(userId, { refreshToken: undefined });
+  }
+
+  hashData(data: string) {
+    return argon2.hash(data);
+  }
+
+  async updateRefreshToken(id: string, refreshToken: string) {
+    const hashToken = await this.hashData(refreshToken);
+    await this.userService.update(id, {
+      refreshToken: hashToken,
+    });
   }
 
   async getTokens(id: string, email: string) {
