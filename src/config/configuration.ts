@@ -5,6 +5,8 @@ export default () => ({
   },
   jwt: {
     secret: process.env.JWT_SECRET_KEY,
+    secretExpiresIn: process.env.JWT_SECRET_EXPIRE,
     refresh: process.env.REFRESH_JWT_SECRET_KEY,
+    refreshExpiresIn: process.env.REFRESH_JWT_SECRET_KEY_EXPIRE,
   },
 });

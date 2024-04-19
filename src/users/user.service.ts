@@ -19,6 +19,10 @@ export class UserService {
     return await this.userModel.findOne({ email }).exec();
   }
 
+  async findById(id: string): Promise<UserDocument | null> {
+    return await this.userModel.findById(id);
+  }
+
   async update(
     id: string,
     payload: Partial<UpdateUserDto>,

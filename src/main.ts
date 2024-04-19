@@ -9,6 +9,10 @@ async function bootstrap() {
     .setTitle('Light')
     .setVersion('0.1.0')
     .addTag('Endpoints')
+    .addBearerAuth({
+      scheme: 'Bearer',
+      type: 'http',
+    })
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

@@ -1,14 +1,20 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UserService } from 'src/users/user.service';
 import { LoginDto, RegisterDto } from './dto';
 import * as argon2 from 'argon2';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
+    private configService: ConfigService,
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -32,15 +38,21 @@ export class AuthService {
     const matchPass = await argon2.verify(user.password, loginDto.password);
     if (!matchPass) throw new BadRequestException('Password is incorrect');
 
-    // tokens
-    const { token, refreshToken } = await this.getTokens(user.id, user.email);
-    await this.updateRefreshToken(user.id, refreshToken);
-
-    return { token, refreshToken };
+    return await this.getNewTokens(user.id, user.email);
   }
 
-  async logout(userId: string) {
-    this.userService.update(userId, { refreshToken: undefined });
+  async logout(userId: any) {
+    this.userService.update(userId, { refreshToken: '' });
+  }
+
+  async refreshTokens(id: string, token: string) {
+    const user = await this.userService.findById(id);
+    if (!user) throw new UnauthorizedException();
+
+    const matchToken = await argon2.verify(user.refreshToken, token);
+    if (!matchToken) throw new UnauthorizedException();
+
+    return await this.getNewTokens(user.id, user.email);
   }
 
   hashData(data: string) {
@@ -54,15 +66,23 @@ export class AuthService {
     });
   }
 
+  async getNewTokens(id: string, email: string) {
+    const { token, refreshToken } = await this.getTokens(id, email);
+    await this.updateRefreshToken(id, refreshToken);
+
+    return { token, refreshToken };
+  }
+
   async getTokens(id: string, email: string) {
     const payload = { sub: id, email };
 
     const [token, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload, {
-        expiresIn: '15m',
+        expiresIn: this.configService.get<string>('jwt.secretExpiresIn'),
       }),
       this.jwtService.signAsync(payload, {
-        expiresIn: '7d',
+        secret: this.configService.get<string>('jwt.refresh'),
+        expiresIn: this.configService.get<string>('jwt.refreshExpiresIn'),
       }),
     ]);
 
